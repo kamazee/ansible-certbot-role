@@ -1,0 +1,7 @@
+---
+galaxy_info:
+  role_name: certbot
+  author: Alexander Kurilo
+  license: MIT
+  # I haven't tested it with earlier versions
+  min_ansible_version: 2.10

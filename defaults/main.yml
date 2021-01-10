@@ -1,0 +1,23 @@
+---
+certbot_command: "certbot"
+certbot_selfsigned_key_file: "{{ certbot_selfsigned_root }}/key.pem"
+certbot_selfsigned_csr_config_file: "{{ certbot_selfsigned_root }}/csr.conf"
+certbot_selfsigned_csr_file: "{{ certbot_selfsigned_root }}/csr.pem"
+certbot_selfsigned_cert_file: "{{ certbot_selfsigned_root }}/cert.pem"
+certbot_key_file: "{{ certbot_config_root }}/live/{{ certbot_cert_name }}/privkey.pem"
+certbot_cert_file: "{{ certbot_config_root }}/live/{{ certbot_cert_name }}/fullchain.pem"
+certbot_config_root: "/etc/letsencrypt"
+certbot_selfsigned_root: "/tmp/{{ certbot_cert_name }}"
+certbot_webserver_reload_command: "systemctl reload nginx"
+certbot_deploy_hook: "ln -sf {{ certbot_key_file }} {{ certbot_key_link_dest }} && ln -sf {{ certbot_cert_file }} {{ certbot_cert_link_dest }} && {{ certbot_webserver_reload_command }}"
+certbot_issue_real_cert: yes
+csr_config_template: "csr.config.j2"
+# The following variables are not intentionally. Must be set by a caller
+# Where ".well-known/acme-challenge" will be created
+# certbot_acme_http_challenge_root: "/var/www"
+# Certificate's name; defines where real certificates will be placed in "{{ certbot_config_root }}/live"
+# certbot_cert_name: ""
+# The location of a symlink to the real certificate's key; where your HTTP server will look for a cert key
+# certbot_key_link_dest: ""
+# The location of a symlink to the real certificate; where your HTTP server will look for a cert
+# certbot_cert_link_dest: ""

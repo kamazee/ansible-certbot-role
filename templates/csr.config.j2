@@ -1,0 +1,24 @@
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+
+[dn]
+C = BY
+ST = Minsk
+L = Minsk
+O = N/A
+OU = ping.by
+emailAddress = {{ certbot_letsencrypt_email }}
+CN = {{ certbot_domains[0] }}
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+
+{% for domain in certbot_domains %}
+DNS.{{ loop.index }} = {{ domain }}
+{% endfor %}
