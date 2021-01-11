@@ -34,3 +34,110 @@ Point 3 mentions that the role expects few values to be passed in when including
 | certbot_cert_link_dest | `string` | Filename; this is where your webserver expects the certificate to be; this will be a symlink to the certificate |
 | certbot_key_link_dest | `string` | Filename; this is where your webserver expects the key to be; this will be a symlink to the actual key |
 | certbot_issue_real_cert | `bool` | Whether to issue a real certificate or not (`false` makes sense in a testing environment where self-signed cert is sufficient, and where it might be challenging to pass an http-01 challenge because inbound connections are cut off) |
+
+
+### Usage example
+
+Assuming you have something like this in your existing role/playbook:
+
+```yaml
+---
+- name: Put acme challenge config
+  template:
+    src: "acme-challenge.conf"
+    dest: /etc/nginx/acme-challenge.conf
+  notify:
+    - Reload nginx
+
+- name: Put site configuration
+  template:
+    src: example.com.conf.j2
+    dest: /etc/nginx/sites-available/example.com.conf.j2
+  notify:
+    - Reload nginx
+
+# Just add SSL configuration into your example.conf.j2,
+# and now it's time for certbot role to kick in:
+- name: https for example.com
+  include_role:
+    name: kamazee.certbot
+  vars:
+    certbot_domains:
+      - "www.{{ example_com_host }}"
+      - "{{ example_com_host }}"
+    certbot_cert_name: "{{ exmaple_com_certbot_cert_name }}"
+    certbot_cert_link_dest: "{{ exmaple_com_certbot_cert_link_dest }}"
+    certbot_key_link_dest: "{{ exmaple_com_certbot_key_link_dest }}"
+```
+
+Something like this will be in the variables:
+```yaml
+---
+exmaple_com_certbot_cert_name: "example_com"
+exmaple_com_certbot_cert_link_dest: /etc/nginx/ssl/example.com/cert.pem
+exmaple_com_certbot_key_link_dest: /etc/nginx/ssl/example.com/cert.key
+certbot_acme_http_challenge_root: /var/www
+```
+
+Here is my `templates/acme-challenge.conf`:
+```
+location /.well-known/acme-challenge {
+    root {{ acme_challenge_root }};
+    autoindex off;
+}
+```
+
+`templates/example.conf.j2` might look like this:
+```
+server {
+    listen 80;
+    server_name www.{{ exmaple_com_host }} {{ exmaple_com_host }};
+
+    include "acme-challenge.conf";
+
+    return 301 https://www.{{ exmaple_com_host }}$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name www.{{ exmaple_com_host }};
+
+    ssl_certificate {{ exmaple_com_certbot_cert_link_dest }};
+    ssl_certificate_key {{ exmaple_com_certbot_key_link_dest }};
+
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+
+    ssl_ciphers  HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers  on;
+
+    root {{ exmaple_com_public_root }};
+    index index.html;
+    autoindex off;
+
+    error_log {{ exmaple_com_nginx_error_log }};
+    access_log {{ exmaple_com_nginx_access_log }};
+
+    include "acme-challenge.conf";
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ exmaple_com_host }};
+
+    ssl_certificate {{ exmaple_com_certbot_cert_link_dest }};
+    ssl_certificate_key {{ exmaple_com_certbot_key_link_dest }};
+
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+
+    ssl_ciphers  HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers  on;
+
+    include "acme-challenge.conf";
+
+    return 301 https://www.{{ exmaple_com_host }}$request_uri;
+}
+```
+
+Although boilerplate doesn't look small, you likely already have it all somewhere, so the trick is to just properly put the role.
