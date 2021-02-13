@@ -3,15 +3,15 @@
   become: yes
   file:
     state: directory
-    path: "{{ certbot_selfsigned_root }}"
+    path: "{{ certbot_stubs_root }}"
     owner: root
     mode: 0700
 
 - name: Generate private key
   become: yes
   command:
-    cmd: openssl genrsa -out {{ certbot_selfsigned_key_file }} {{ ssl_key_length | default(2048) }}
-    creates: "{{ certbot_selfsigned_key_file }}"
+    cmd: openssl genrsa -out {{ certbot_stub_key_file }} {{ ssl_key_length | default(2048) }}
+    creates: "{{ certbot_stub_key_file }}"
   register: ssl_private_key_status
 
 - name: Render CSR config
@@ -33,7 +33,7 @@
 - name: Generate CSR
   become: yes
   command:
-    cmd: openssl req -new -key {{ certbot_selfsigned_key_file }} -out {{ certbot_selfsigned_csr_file }} -config {{ certbot_selfsigned_csr_config_file }}
+    cmd: openssl req -new -key {{ certbot_stub_key_file }} -out {{ certbot_selfsigned_csr_file }} -config {{ certbot_selfsigned_csr_config_file }}
     creates: "{{ certbot_selfsigned_csr_file }}"
   register: csr_status
 
@@ -47,26 +47,12 @@
 - name: Remove a certificate if CSR changes
   become: yes
   file:
-    path: "{{ certbot_selfsigned_cert_file }}"
+    path: "{{ certbot_stub_cert_file }}"
     state: absent
   when: csr_status is changed
 
 - name: Issue a self-signed certificate
   become: yes
   command:
-    cmd: "openssl x509 -in {{ certbot_selfsigned_csr_file }} -out {{ certbot_selfsigned_cert_file }} -req -signkey {{ certbot_selfsigned_key_file }} -days 365"
-    creates: "{{ certbot_selfsigned_cert_file }}"
-
-- name: Link self-signed certificate
-  become: yes
-  file:
-    state: link
-    src: "{{ certbot_selfsigned_cert_file }}"
-    dest: "{{ certbot_cert_link_dest }}"
-
-- name: Link a key of self-signed certificate
-  become: yes
-  file:
-    state: link
-    src: "{{ certbot_selfsigned_key_file }}"
-    dest: "{{ certbot_key_link_dest }}"
+    cmd: "openssl x509 -in {{ certbot_selfsigned_csr_file }} -out {{ certbot_stub_cert_file }} -req -signkey {{ certbot_stub_key_file }} -days 365"
+    creates: "{{ certbot_stub_cert_file }}"

@@ -1,25 +1,4 @@
 ---
-- name: Install certbot
-  become: yes
-  apt:
-    pkg: certbot
-    state: "{{ apt_state_default | default('present') }}"
-    update_cache: yes
-    cache_valid_time: "{{ apt_cache_valid_time | default(86400) }}"
-
-- name: Register Letsencrypt account
-  become: yes
-  command:
-    argv:
-      - "{{ certbot_command }}"
-      - "--non-interactive"
-      - register
-      - "--agree-tos"
-      - "-m"
-      - "{{ certbot_letsencrypt_email }}"
-      - "--no-eff-email"
-    creates: "/etc/letsencrypt/accounts/*/directory/*/private_key.json"
-
 - name: Make sure desination dir for symlinks exist
   become: yes
   file:
@@ -37,23 +16,45 @@
     path: "{{ certbot_cert_link_dest }}"
   register: certbot_cert_link_status
 
-- name: Issue temporary self-signed certificate
-  include_tasks:
-    file: selfsigned.yml
-    apply:
-      tags:
-        - https
-  when: not certbot_cert_link_status.stat.exists
+- name: Install certbot
+  become: yes
+  apt:
+    pkg: certbot
+    state: "{{ apt_state_default | default('present') }}"
+    update_cache: yes
+    cache_valid_time: "{{ apt_cache_valid_time | default(86400) }}"
+  when: certbot_issue_real_cert
 
-# This is required to make nginx expose the host to pass ACME http challenge
-- name: Flush listeners if certificate has changed
-  meta: flush_handlers
+- name: Register Letsencrypt account
+  become: yes
+  command:
+    argv:
+      - "{{ certbot_command }}"
+      - "--non-interactive"
+      - register
+      - "--agree-tos"
+      - "-m"
+      - "{{ certbot_letsencrypt_email }}"
+      - "--no-eff-email"
+    creates: "/etc/letsencrypt/accounts/*/directory/*/private_key.json"
+  when: certbot_issue_real_cert
 
 - name: Check if there is a real certificate
   become: yes
   stat:
     path: "{{ certbot_cert_file }}"
   register: certbot_cert_file_status
+
+- name: Link stub sertificates
+  include_tasks:
+    file: stubs.yml
+    apply:
+      tags:
+        - https
+
+# This is required to make nginx expose the host to pass ACME http challenge
+- name: Flush listeners
+  meta: flush_handlers
 
 - name: Issue a real certificate
   become: yes

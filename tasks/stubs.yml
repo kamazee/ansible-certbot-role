@@ -1,0 +1,20 @@
+---
+- name: Generate self-signed certificates if needed
+  import_tasks: selfsigned.yml
+  when: certbot_generate_stubs
+
+- name: Link stub certificate
+  become: yes
+  file:
+    state: link
+    src: "{{ certbot_stub_cert_file }}"
+    dest: "{{ certbot_cert_link_dest }}"
+  when: not certbot_cert_link_status.stat.exists or not certbot_cert_file_status.stat.exists
+
+- name: Link a key of stub certificate
+  become: yes
+  file:
+    state: link
+    src: "{{ certbot_stub_key_file }}"
+    dest: "{{ certbot_key_link_dest }}"
+  when: not certbot_cert_link_status.stat.exists or not certbot_cert_file_status.stat.exists

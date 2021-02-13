@@ -22,21 +22,29 @@ So, I assume there's a task that adds a virtual server configuration (`server` i
 
 **The role will flush ansible handlers** before working with ACME challenge in order to make sure that webserver is capable of handling HTTP challenge. When a real certificate is obtained, it will replace symlink that pointed to a self-signed certificate and reload your webserver (`systemctl reload nginx` by default; the command can be customized).
 
-Point 3 mentions that the role expects few values to be passed in when including it; here they are:
+## How The Role Works
+
+![Flowchart](README/ansible-certbot.png)
+
+
+## Configuration
 
 | Variable Name | Type | Meaning |
 | --- | --- | --- |
 | `certbot_letsencrypt_email` | `string` | Email to register Letsencrypt account with |
 | `certbot_acme_http_challenge_root` | `string` | Directory in which challenge file `.well-known/acme-challenge/<TOKEN>` will be created. Note that `certbot` creates `.well-known/acme-challenge`, too, so this directory will contain not the token directly but the `.well-known` directory |
 | `certbot_domains` | `string[]` (`list` of `string`) | Domains the certificate should be issued for; virtual servers for each of the domains must either redirect to the location that exposes the challenge token (`/.well-known/acme-challenge/<TOKEN>`) or expose it themselves |
-| certbot_cert_name | `string` | Name of the certificate. Defines the name under which the certificate is listed in `certbot certificates` output and the location of the certificates and renewal configurations under certbot config root |
-| certbot_selfsigned_root | `string` | Path where self-signed temporary certificates will be placed; note that they are not removed when symlink is switched to the real certificates |
-| certbot_cert_link_dest | `string` | Filename; this is where your webserver expects the certificate to be; this will be a symlink to the certificate |
-| certbot_key_link_dest | `string` | Filename; this is where your webserver expects the key to be; this will be a symlink to the actual key |
-| certbot_issue_real_cert | `bool` | Whether to issue a real certificate or not (`false` makes sense in a testing environment where self-signed cert is sufficient, and where it might be challenging to pass an http-01 challenge because inbound connections are cut off) |
+| `certbot_cert_name` | `string` | Name of the certificate. Defines the name under which the certificate is listed in `certbot certificates` output and the location of the certificates and renewal configurations under certbot config root |
+| `certbot_stubs_root` | `string` | Path where self-signed temporary certificates will be placed; note that they are not removed when symlink is switched to the real certificates |
+| `certbot_generate_stubs` | `bool` | Whether self-signed certificates are expected to be generated or they are expected to exist. Defaults to `true`; however, if you're configuring dev env with `certbot_issue_real_cert` set to `false`, and keep real certificates for dev env somewhere, set them as "stubs," and your dev env is good to go |
+| `certbot_stub_cert_file` | `string` | Where stub certificate is located (default: `{{ certbot_stubs_root }}/cert.pem`) |
+| `certbot_stub_key_file` | `string` | Where stub key is located (default: `{{ certbot_stubs_root }}/key.pem`) |
+| `certbot_cert_link_dest` | `string` | Filename; this is where your webserver expects the certificate to be; this will be a symlink to the certificate |
+| `certbot_key_link_dest` | `string` | Filename; this is where your webserver expects the key to be; this will be a symlink to the actual key |
+| `certbot_issue_real_cert` | `bool` | Whether to issue a real certificate or not (`false` makes sense in a testing environment where self-signed cert is sufficient, and where it might be challenging to pass an http-01 challenge because inbound connections are cut off) |
 
 
-### Usage example
+## Usage example
 
 Assuming you have something like this in your existing role/playbook:
 
