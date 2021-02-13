@@ -22,7 +22,7 @@ So, I assume there's a task that adds a virtual server configuration (`server` i
 
 **The role will flush ansible handlers** before working with ACME challenge in order to make sure that webserver is capable of handling HTTP challenge. When a real certificate is obtained, it will replace symlink that pointed to a self-signed certificate and reload your webserver (`systemctl reload nginx` by default; the command can be customized).
 
-Point 3 mentions that the role expects few values to be passed in when including; here they are:
+Point 3 mentions that the role expects few values to be passed in when including it; here they are:
 
 | Variable Name | Type | Meaning |
 | --- | --- | --- |
@@ -68,6 +68,8 @@ Assuming you have something like this in your existing role/playbook:
     certbot_cert_name: "{{ exmaple_com_certbot_cert_name }}"
     certbot_cert_link_dest: "{{ exmaple_com_certbot_cert_link_dest }}"
     certbot_key_link_dest: "{{ exmaple_com_certbot_key_link_dest }}"
+    certbot_acme_http_challenge_root: "{{ example_com_acme_http_challenge_root }}"
+    certbot_letsencrypt_email: "{{ example_com_certbot_letsencrypt_email }}"
 ```
 
 Something like this will be in the variables:
@@ -76,7 +78,8 @@ Something like this will be in the variables:
 exmaple_com_certbot_cert_name: "example_com"
 exmaple_com_certbot_cert_link_dest: /etc/nginx/ssl/example.com/cert.pem
 exmaple_com_certbot_key_link_dest: /etc/nginx/ssl/example.com/cert.key
-certbot_acme_http_challenge_root: /var/www
+example_com_acme_http_challenge_root: /var/www
+example_com_certbot_letsencrypt_email: hostmaster@example.com
 ```
 
 Here is my `templates/acme-challenge.conf`:
